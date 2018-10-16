@@ -1,0 +1,98 @@
+
+var APP_CONFIG = require('./app-config.js');
+
+
+var bodyParser = require('body-parser');
+var cookieParser = require('cookie-parser');
+var Express = require('express');
+var expressValidator = require('express-validator');
+var mongo = require('mongodb');
+var mongoose = require('mongoose');
+var passport = require('passport');
+var path = require('path');
+var session = require('express-session');
+
+
+mongoose.connect(APP_CONFIG.dbLocation);
+var db = mongoose.connection;
+
+
+var auth_route = require('./routes/auth');
+var api_route = require('./routes/api');
+
+
+
+const app = new Express();
+
+
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieParser());
+
+
+app.use(Express.static(path.join(__dirname, 'static')));
+
+
+app.use(session({
+  secret: 'supersecret',
+  saveUninitialized: true,
+  resave: true
+}))
+
+
+app.use(expressValidator({
+  errorFormatter: function(param, msg, value) {
+      var namespace = param.split('.')
+      , root    = namespace.shift()
+      , formParam = root;
+
+    while(namespace.length) {
+      formParam += '[' + namespace.shift() + ']';
+    }
+    return {
+      param : formParam,
+      msg   : msg,
+      value : value
+    };
+  }
+}));
+
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+
+app.get('*', function(req, res){
+  let markup = '';
+  let status = 200;
+
+  return res.status(status).render('index', { markup });
+});
+
+app.post('/testpost', function(req,res){
+  res.status(200).json({
+    message: 'test response.'
+  })
+});
+
+
+app.use('/auth', auth_route);
+app.use('/api', api_route);
+
+
+
+const port = process.env.PORT || 3000;
+const env = process.env.NODE_ENV || 'production';
+app.listen(port, (err) => {
+  if (err) {
+    return console.error(err);
+  }
+  return console.info(
+    `
+      Server running on http://localhost:${port} [${env}]
+      Universal rendering: ${process.env.UNIVERSAL ? 'enabled' : 'disabled'}
+    `);
+});
