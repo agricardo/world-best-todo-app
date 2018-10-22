@@ -84,7 +84,7 @@ app.use('/api', api_route);
 
 
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8022;
 const env = process.env.NODE_ENV || 'production';
 app.listen(port, (err) => {
   if (err) {
